@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DependencyInjectionContainerLib
 {
@@ -46,6 +47,18 @@ namespace DependencyInjectionContainerLib
             if (_registeredTypes.TryGetValue(_interface, out List<RegisteredTypeInfo> typesAlreadyRegistered))
             {
                 return typesAlreadyRegistered.First();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public IEnumerable<RegisteredTypeInfo> GetAllImplementations(Type _interface)
+        {
+            if (_registeredTypes.TryGetValue(_interface, out List<RegisteredTypeInfo> typesAlreadyRegistered))
+            {
+                return typesAlreadyRegistered;
             }
             else
             {
