@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -11,6 +12,7 @@ namespace DependencyInjectionContainerLib
         private readonly DependencyInjectionConfig _configuration;
         private readonly Stack<Type> _dependenciesStack;
         private readonly Type _currentType;
+        private static readonly object _ob = new object();
 
         public DependencyInjectionContainer(DependencyInjectionConfig config)
         {
@@ -18,15 +20,71 @@ namespace DependencyInjectionContainerLib
             _dependenciesStack = new Stack<Type>();
         }
 
+        public T Resolve<T>() where T : class
+        {
+            var typeToResolve = typeof(T);
+            RegisteredTypeInfo registeredType;
+            if (typeToResolve.IsGenericType)
+            {
+                registeredType = _configuration.GetImplementation(typeToResolve.GetGenericTypeDefinition());
+            }
+            else
+            {
+                registeredType = _configuration.GetImplementation(typeToResolve);
+            }
+
+            if (registeredType == null)
+            {
+                throw new Exception("No such type registered");
+            }
+
+            return (T)GetInstance(registeredType);
+        }
+
+        public IEnumerable<T> ResolveAll<T>() where T : class
+        {
+            return (IEnumerable<T>)InstantiateEnumerable(typeof(T));
+        }
+
+        private object InstantiateEnumerable(Type type)
+        {
+            RegisteredTypeInfo registeredType = _configuration.GetImplementation(type);
+            if (registeredType != null)
+            {
+                IList collection = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(type));
+                IEnumerable<RegisteredTypeInfo> registeredTypes = _configuration.GetAllImplementations(type);
+                foreach (RegisteredTypeInfo item in registeredTypes)
+                {
+                    collection.Add(GetInstance(item));
+                }
+                return collection;
+            }
+            else
+            {
+                throw new Exception("No such type registered");
+            }
+        }
+
         private object GetInstance(RegisteredTypeInfo registeredType)
         {
             if (registeredType.Lifecycle == LifecycleType.Singleton)
             {
-                return new object();
+                if (registeredType.Instance == null)
+                {
+                    lock (_ob)
+                    {
+                        if (registeredType.Instance == null)
+                        {
+                            registeredType.Instance = Instantiate(registeredType.InterfaceType);
+                        }
+                    }
+                }
+                return registeredType.Instance;
             }
             else
             {
-                return new object();
+                object createdInst = Instantiate(registeredType.InterfaceType);
+                return createdInst;
             }
         }
 
