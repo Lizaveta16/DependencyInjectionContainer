@@ -47,26 +47,19 @@ namespace DependencyInjectionContainerLib
                     }
                     else
                     {
-                        
+                        throw new Exception("Could not register type");
                     }
                 }
             }
             else
             {
-              
+                throw new Exception("Could not register type");
             }
         }
 
         public RegisteredTypeInfo GetImplementation(Type _interface)
         {
-            if (_registeredTypes.TryGetValue(_interface, out List<RegisteredTypeInfo> typesAlreadyRegistered))
-            {
-                return typesAlreadyRegistered.First();
-            }
-            else
-            {
-                return null;
-            }
+            return (_registeredTypes.TryGetValue(_interface, out var list)) ? list.Last() : null;
         }
 
         public IEnumerable<RegisteredTypeInfo> GetAllImplementations(Type _interface)

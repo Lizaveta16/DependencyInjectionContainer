@@ -4,7 +4,7 @@ using System.Text;
 
 namespace DependencyInjectionContainerLib
 {
-    class RegisteredTypeInfo
+    public class RegisteredTypeInfo
     {
         public LifecycleType Lifecycle { get; }
         public Type InterfaceType { get; }
@@ -24,5 +24,4 @@ namespace DependencyInjectionContainerLib
     {
         Singleton, InstancePerDependency
     }
-}
 }

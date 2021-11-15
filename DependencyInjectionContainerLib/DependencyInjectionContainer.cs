@@ -7,7 +7,7 @@ using System.Text;
 
 namespace DependencyInjectionContainerLib
 {
-    class DependencyInjectionContainer
+    public class DependencyInjectionContainer
     {
         private readonly DependencyInjectionConfig _configuration;
         private readonly Stack<Type> _dependenciesStack;
