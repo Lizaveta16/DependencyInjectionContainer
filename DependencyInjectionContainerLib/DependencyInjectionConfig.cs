@@ -40,5 +40,17 @@ namespace DependencyInjectionContainerLib
               
             }
         }
+
+        public RegisteredTypeInfo GetImplementation(Type _interface)
+        {
+            if (_registeredTypes.TryGetValue(_interface, out List<RegisteredTypeInfo> typesAlreadyRegistered))
+            {
+                return typesAlreadyRegistered.First();
+            }
+            else
+            {
+                return null;
+            }
+        }
     }
 }
