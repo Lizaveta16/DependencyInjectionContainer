@@ -13,6 +13,21 @@ namespace DependencyInjectionContainerLib
             _registeredTypes = new Dictionary<Type, List<RegisteredTypeInfo>>();
         }
 
+        public void Register<TInterface, TImplementation>(LifecycleType lifeCycle = LifecycleType.InstancePerDependency)
+        {
+            RegisterNewPair(typeof(TInterface), typeof(TImplementation), lifeCycle);
+        }
+
+        public void Register(Type tInterface, Type tImplementation, LifecycleType lifeCycle = LifecycleType.InstancePerDependency)
+        {
+            RegisterNewPair(tInterface, tImplementation, lifeCycle);
+        }
+
+        public void RegisterAsSelf<TImplementation>(LifecycleType lifeCycle = LifecycleType.InstancePerDependency) where TImplementation : class
+        {
+            RegisterNewPair(typeof(TImplementation), typeof(TImplementation), lifeCycle);
+        }
+
         private void RegisterNewPair(Type _interface, Type _implementation, LifecycleType _lifecycleType = LifecycleType.InstancePerDependency)
         {
             if (!_implementation.IsInterface &&

@@ -11,7 +11,6 @@ namespace DependencyInjectionContainerLib
     {
         private readonly DependencyInjectionConfig _configuration;
         private readonly Stack<Type> _dependenciesStack;
-        private readonly Type _currentType;
         private static readonly object _ob = new object();
 
         public DependencyInjectionContainer(DependencyInjectionConfig config)
@@ -23,8 +22,9 @@ namespace DependencyInjectionContainerLib
         public T Resolve<T>() where T : class
         {
             var typeToResolve = typeof(T);
-            RegisteredTypeInfo registeredType;
-            if (typeToResolve.IsGenericType)
+            var _currentType = typeToResolve;
+            RegisteredTypeInfo registeredType = _configuration.GetImplementation(typeToResolve);
+            if (typeToResolve.IsGenericType && registeredType == null)
             {
                 registeredType = _configuration.GetImplementation(typeToResolve.GetGenericTypeDefinition());
             }
@@ -38,15 +38,15 @@ namespace DependencyInjectionContainerLib
                 throw new Exception("No such type registered");
             }
 
-            return (T)GetInstance(registeredType);
+            return (T)GetInstance(registeredType, _currentType);
         }
 
         public IEnumerable<T> ResolveAll<T>() where T : class
         {
-            return (IEnumerable<T>)InstantiateEnumerable(typeof(T));
+            return (IEnumerable<T>)InstantiateEnumerable(typeof(T), typeof(T));
         }
 
-        private object InstantiateEnumerable(Type type)
+        private object InstantiateEnumerable(Type type, Type currType)
         {
             RegisteredTypeInfo registeredType = _configuration.GetImplementation(type);
             if (registeredType != null)
@@ -55,7 +55,7 @@ namespace DependencyInjectionContainerLib
                 IEnumerable<RegisteredTypeInfo> registeredTypes = _configuration.GetAllImplementations(type);
                 foreach (RegisteredTypeInfo item in registeredTypes)
                 {
-                    collection.Add(GetInstance(item));
+                    collection.Add(GetInstance(item, currType));
                 }
                 return collection;
             }
@@ -65,7 +65,7 @@ namespace DependencyInjectionContainerLib
             }
         }
 
-        private object GetInstance(RegisteredTypeInfo registeredType)
+        private object GetInstance(RegisteredTypeInfo registeredType, Type currType)
         {
             if (registeredType.Lifecycle == LifecycleType.Singleton)
             {
@@ -75,7 +75,7 @@ namespace DependencyInjectionContainerLib
                     {
                         if (registeredType.Instance == null)
                         {
-                            registeredType.Instance = Instantiate(registeredType.InterfaceType);
+                            registeredType.Instance = Instantiate(registeredType.InterfaceType, currType);
                         }
                     }
                 }
@@ -83,12 +83,12 @@ namespace DependencyInjectionContainerLib
             }
             else
             {
-                object createdInst = Instantiate(registeredType.InterfaceType);
+                object createdInst = Instantiate(registeredType.InterfaceType, currType);
                 return createdInst;
             }
         }
 
-        private object Instantiate(Type type)
+        private object Instantiate(Type type, Type currType)
         {
             RegisteredTypeInfo registeredType = _configuration.GetImplementation(type);
 
@@ -101,7 +101,7 @@ namespace DependencyInjectionContainerLib
 
                     if (typeToInstantiate.IsGenericTypeDefinition)
                     {
-                        typeToInstantiate.MakeGenericType(_currentType.GenericTypeArguments);
+                        typeToInstantiate = typeToInstantiate.MakeGenericType(currType.GenericTypeArguments);
                     }
 
                     ConstructorInfo[] constructors = typeToInstantiate.GetConstructors().OrderByDescending(x => x.GetParameters().Length).ToArray();
@@ -115,7 +115,7 @@ namespace DependencyInjectionContainerLib
                         try
                         {
                             ConstructorInfo constructorInfo = constructors[currentConstructor - 1];
-                            object[] constructorParam = GetConstructorParameters(constructorInfo);
+                            object[] constructorParam = GetConstructorParameters(constructorInfo, currType);
                             result = Activator.CreateInstance(typeToInstantiate, constructorParam);
                             createdSuccessfully = true;
                         }
@@ -149,13 +149,13 @@ namespace DependencyInjectionContainerLib
             }
         }
 
-        private object[] GetConstructorParameters(ConstructorInfo constructorInfo)
+        private object[] GetConstructorParameters(ConstructorInfo constructorInfo, Type currType)
         {
             ParameterInfo[] parametersInfo = constructorInfo.GetParameters();
             object[] parameters = new object[parametersInfo.Length];
             for (int i = 0; i < parametersInfo.Length; i++)
             {
-                parameters[i] = GetInstance(_configuration.GetImplementation(parametersInfo[i].ParameterType));
+                parameters[i] = GetInstance(_configuration.GetImplementation(parametersInfo[i].ParameterType), currType);
             }
             return parameters;
         }
